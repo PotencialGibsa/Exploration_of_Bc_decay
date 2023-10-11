@@ -3,8 +3,9 @@ gROOT.SetBatch(True)
 import datetime
 #####The fitting of the fon from the decay: Bc -> BKPI
 
-FITTING = False
+FITTING = False # is responsible for making fit
 
+# Adding processed files after Xb_frame and MySelector
 ch = TChain('mytree')
 ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trigger_matching_2016_part_1.root')
 ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trigger_matching_2016_part_2.root')
@@ -12,14 +13,13 @@ ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trig
 ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trigger_matching_2017_part_2.root')
 ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trigger_matching_2018_part_1.root')
 ch.Add('/eos/home-d/dshmygol/SimpleFile_Bc_in_BKPI/SimpleFile_Bc_in_BKPI_v6_trigger_matching_2018_part_2.root')
-#ch.Add('/eos/home-d/dshmygol/SimpleFile_MC_Bc_in_BKPI_v7_trigger_matching.root')
 nEvt = ch.GetEntries()
 print("Number of events:" , nEvt)
 
 x = RooRealVar('Bc_mass','Bc_mass', 5.92, 6.6)
 
 varset = RooArgSet(x)
-
+# Reading the data from root files and making cuts in needed
 dh = 0
 dh = RooDataSet ('dh','Dataset', varset)
 N_cand = 0
@@ -66,12 +66,12 @@ for evt in range(nEvt):
     N_cand += 1
 print("The number of candidates on the picture is : ", N_cand)
 
-#############################################
+# fitting
 if FITTING :
     PDG_B = 5.27934
     PDG_K = 0.493677
     PDG_PI = 0.13957061
-    B       = RooRealVar ( "B"      , "B"       ,1.37983*10**7, 0, 14000000) #all 14418848
+    B       = RooRealVar ( "B"      , "B"       ,1.37983*10**7, 0, 14000000) 
     B_al    = RooRealVar ( "B_al"   , "B_{#alpha}", 1.27, 0.001, 5.0   )
     B_be    = RooRealVar ( "B_be"   , "B_{#beta}", 0.9753, 0.001, 5.0   )
     H_al = RooRealVar ( "H_al"   , "H_{#alpha}", 199.64, 0, 500)
@@ -85,19 +85,16 @@ if FITTING :
     E_s_2 = RooRealVar ( "E_s_2" , "E_s_2", 0.0061488, 0.0001, 0.01   )
     Bc_m1 = RooRealVar ( "Bc_m1"   , "Bc_m1", 6.0, 5.0 , 7.0 )
     x_zn = RooRealVar ( "x_zn"   , "x_zn", 5.3287, 4.5 , 5.6 )
-    #b    = RooRealVar ( "b"   , "b", 12.6, -100, 100   )
-    # pdfG    = RooGenericPdf ("pdfG"    , "@4*@0/@7*(@0-@1)^(@2) * (1+@3*(@0-@6))^@5", RooArgList (x,Bc_m,  B_al,C,  B , H_al, Bc_m1, x_zn) )
+    
     pdfA    = RooFormulaVar ("pdfA"    , "@0-@1 > 0 ? (@0-@1)^(@2) : 0", RooArgList (x,Bc_m1, B_be ))
     pdfB    = RooFormulaVar ("pdfB"    , "1/(1+exp((@1-@0)/@2))", RooArgList (x,E_m, E_s ))
     pdfC    = RooFormulaVar ("pdfC"    , "1/(1+exp((@1-@0)/@2))", RooArgList (x,E_m_2, E_s_2 ))
-    #pdfG    = RooGenericPdf ("pdfG"    , "(1.0-@4) * (@0-@1)^(@2) * (1+@3*(@0-6.2)) + @4*@5", RooArgList (x,Bc_m, B_al,C,f,pdfA))
-    #pdfG    = RooGenericPdf ("pdfG"    , " (@0-@1)^(@2) * (1+@3*(@0-6.2)) * @4", RooArgList (x,Bc_m, B_al,C,pdfB))
+    
     pdfG    = RooGenericPdf ("pdfG"    , " (@0-@1)^(@2) * (1+@3*(@0-6.2)) *@4 * @5", RooArgList (x,Bc_m, B_al,C,pdfB,pdfC))
 
     Bc_m.setConstant(True)
     B_al.setConstant(True)
     C.setConstant(True)
-    #D.setConstant(True)
     f.setConstant(True)
     E_s.setConstant(True)
     E_s_2.setConstant(True)
@@ -105,15 +102,15 @@ if FITTING :
     C.setConstant(False)
     f.setConstant(False)
     B_al.setConstant(False)
-    # Bc_m.setConstant(False)
     rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
     E_s.setConstant(False)
     E_s_2.setConstant(False)
-    #D.setConstant(False)
     rrr = pdfG.fitTo( dh, RooFit.NumCPU(7), RooFit.Range('SBL,SBR'), RooFit.Save() )
     rrr = pdfG.fitTo( dh, RooFit.NumCPU(7), RooFit.Range('SBL,SBR'), RooFit.Save() )
 
     rrr.Print()
+
+# making plots
 
 binN = 60
 xframe = x.frame(binN)
@@ -148,73 +145,11 @@ latex.DrawLatex(0.1,0.85, "Bc -> BKPI")
 
 if FITTING :
     latex.SetTextSize(0.04)
-    # latex.DrawText(0.1,0.8,'B = ' + str(pdfG.getParameters(dh)["B"].getValV()))
     latex.DrawText(0.1,0.55,'C = ' + str(pdfG.getParameters(dh)["C"].getValV()))
-    # latex.DrawText(0.1,0.60,'x_zn = ' + str(pdfG.getParameters(dh)["x_zn"].getValV()))
-    # latex.DrawText(0.1,0.40,'H_al = ' + str(pdfG.getParameters(dh)["H_al"].getValV()))
     latex.DrawText(0.1,0.35,'Bc_m = ' + str(pdfG.getParameters(dh)["Bc_m"].getValV()))
-    # latex.DrawText(0.1,0.30,'Bc_m1 = ' + str(pdfG.getParameters(dh)["Bc_m1"].getValV()))
     latex.DrawText(0.1,0.50,'B_al = ' + str(pdfG.getParameters(dh)["B_al"].getValV()))
     latex.DrawText(0.1,0.45,'chi/ndf = ' + str(H_FITRES[3]) + "/" + str(H_FITRES[2]))
 
 
 canvas.SaveAs('Bc_mass.png')
 
-'''
-    B.setConstant(True)
-    Bc_m1.setConstant(True)
-    B_al.setConstant(True)
-    H_al.setConstant(True)
-    Bc_m.setConstant(True)
-    C.setConstant(True)
-    x_zn.setConstant(True)
-    #rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(True)
-    Bc_m1.setConstant(True)
-    B_al.setConstant(True)
-    H_al.setConstant(True)
-    Bc_m.setConstant(True)
-    C.setConstant(False)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(True)
-    Bc_m1.setConstant(True)
-    B_al.setConstant(False)
-    H_al.setConstant(True)
-    Bc_m.setConstant(True)
-    C.setConstant(True)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(True)
-    Bc_m1.setConstant(True)
-    B_al.setConstant(True)
-    H_al.setConstant(False)
-    Bc_m.setConstant(True)
-    C.setConstant(True)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(True)
-    Bc_m1.setConstant(False)
-    B_al.setConstant(True)
-    H_al.setConstant(True)
-    Bc_m.setConstant(True)
-    C.setConstant(True)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(True)
-    Bc_m1.setConstant(True)
-    B_al.setConstant(True)
-    H_al.setConstant(True)
-    Bc_m.setConstant(False)
-    C.setConstant(True)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    x_zn.setConstant(False)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(False)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-    B.setConstant(False)
-    Bc_m1.setConstant(False)
-    B_al.setConstant(False)
-    H_al.setConstant(False)
-    Bc_m.setConstant(False)
-    C.setConstant(False)
-    rrr = pdfG.fitTo( dh, RooFit.NumCPU(7),RooFit.PrintLevel(-1), RooFit.Range('SBL,SBR'), RooFit.Save() )
-
-
-'''

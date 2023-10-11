@@ -1,5 +1,4 @@
 from ROOT import *
-#from variables import *
 import glob
 import numpy as np
 import math
