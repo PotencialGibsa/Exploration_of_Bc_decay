@@ -26,7 +26,7 @@ N_cand = 0
 for evt in range(nEvt):
 	if ch.GetEntry(evt) <= 0: break
 	if evt % 100000 == 0:
-	       print ("Events proceeded:" , evt)
+		print ("Events proceeded:" , evt)
 	Bc_mass = ch.B_mass
 	delta_PI1 = ch.delta_PI1
 	delta_mu1 = ch.delta_mu1
